@@ -1,0 +1,203 @@
+import React, { useState, useEffect, useRef } from 'react';
+
+// Add props to accept image URLs
+const Game = ({ 
+  playerImage = '/api/placeholder/40/40',  // Default placeholder
+  goodItemImage = '/api/placeholder/30/30',
+  badItemImage = '/api/placeholder/30/30',
+  finalItemImage = '/api/placeholder/30/30',
+  backgroundImage = ''  // Optional background
+}) => {
+  const [score, setScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [items, setItems] = useState([]);
+  const [playerPosition, setPlayerPosition] = useState(50);
+  const [finalItemActive, setFinalItemActive] = useState(false);
+  const gameAreaRef = useRef(null);
+  const requestRef = useRef();
+  const lastTimeRef = useRef();
+
+  // Game settings
+  const GAME_HEIGHT = 400;
+  const GAME_WIDTH = 300;
+  const PLAYER_SIZE = 40;
+  const ITEM_SIZE = 30;
+  const SPAWN_INTERVAL = 2000;
+  const FALL_SPEED = 2;
+  const WIGGLE_AMPLITUDE = 50;
+  const WIGGLE_SPEED = 0.05;
+
+  useEffect(() => {
+    const handleTouch = (e) => {
+      e.preventDefault();
+      if (gameAreaRef.current) {
+        const touch = e.touches[0];
+        const rect = gameAreaRef.current.getBoundingClientRect();
+        const position = ((touch.clientX - rect.left) / rect.width) * 100;
+        setPlayerPosition(Math.max(0, Math.min(100, position)));
+      }
+    };
+
+    const gameArea = gameAreaRef.current;
+    if (gameArea) {
+      gameArea.addEventListener('touchmove', handleTouch);
+      gameArea.addEventListener('touchstart', handleTouch);
+    }
+
+    return () => {
+      if (gameArea) {
+        gameArea.removeEventListener('touchmove', handleTouch);
+        gameArea.removeEventListener('touchstart', handleTouch);
+      }
+    };
+  }, []);
+
+  const gameLoop = (timestamp) => {
+    if (!lastTimeRef.current) lastTimeRef.current = timestamp;
+    const deltaTime = timestamp - lastTimeRef.current;
+    lastTimeRef.current = timestamp;
+
+    setItems(prevItems => {
+      return prevItems.map(item => {
+        let newX = item.x;
+        if (item.isFinal) {
+          newX = item.startX + Math.sin(timestamp * WIGGLE_SPEED) * WIGGLE_AMPLITUDE;
+        }
+        
+        const newY = item.y + FALL_SPEED * (deltaTime / 16);
+        
+        if (newY > GAME_HEIGHT - ITEM_SIZE - PLAYER_SIZE) {
+          const playerLeft = (playerPosition / 100) * (GAME_WIDTH - PLAYER_SIZE);
+          const itemLeft = newX;
+          
+          if (itemLeft < playerLeft + PLAYER_SIZE &&
+              itemLeft + ITEM_SIZE > playerLeft &&
+              !item.collected) {
+            item.collected = true;
+            if (item.isFinal) {
+              setGameOver(true);
+              setScore(prev => prev + 100);
+            } else {
+              setScore(prev => prev + (item.isGood ? 10 : -5));
+            }
+          }
+        }
+        
+        return { ...item, x: newX, y: newY };
+      }).filter(item => item.y < GAME_HEIGHT && !item.collected);
+    });
+
+    requestRef.current = requestAnimationFrame(gameLoop);
+  };
+
+  useEffect(() => {
+    if (gameOver) return;
+
+    const spawnItem = () => {
+      if (items.length < 5 && !finalItemActive) {
+        const newItem = {
+          id: Math.random(),
+          x: Math.random() * (GAME_WIDTH - ITEM_SIZE),
+          startX: Math.random() * (GAME_WIDTH - ITEM_SIZE),
+          y: -ITEM_SIZE,
+          isGood: Math.random() > 0.3,
+          isFinal: false,
+          collected: false
+        };
+        setItems(prev => [...prev, newItem]);
+      }
+    };
+
+    const spawnInterval = setInterval(() => {
+      if (score >= 50 && !finalItemActive) {
+        setFinalItemActive(true);
+        setItems(prev => [...prev, {
+          id: 'final',
+          x: GAME_WIDTH / 2,
+          startX: GAME_WIDTH / 2,
+          y: -ITEM_SIZE,
+          isFinal: true,
+          collected: false
+        }]);
+      } else {
+        spawnItem();
+      }
+    }, SPAWN_INTERVAL);
+
+    requestRef.current = requestAnimationFrame(gameLoop);
+
+    return () => {
+      clearInterval(spawnInterval);
+      cancelAnimationFrame(requestRef.current);
+    };
+  }, [gameOver, score, finalItemActive]);
+
+  const handleRestart = () => {
+    setScore(0);
+    setGameOver(false);
+    setItems([]);
+    setFinalItemActive(false);
+  };
+
+  const backgroundStyle = backgroundImage ? {
+    backgroundImage: `url(${backgroundImage})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center'
+  } : {
+    backgroundColor: 'rgb(219 234 254)' // bg-blue-100
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center p-4">
+      <div className="mb-4 text-xl font-bold">Score: {score}</div>
+      <div
+        ref={gameAreaRef}
+        className="relative overflow-hidden touch-none"
+        style={{ width: GAME_WIDTH, height: GAME_HEIGHT, ...backgroundStyle }}
+      >
+        {/* Player */}
+        <img
+          src={playerImage}
+          alt="Player"
+          className="absolute bottom-0"
+          style={{
+            left: `${playerPosition}%`,
+            transform: 'translateX(-50%)',
+            width: PLAYER_SIZE,
+            height: PLAYER_SIZE,
+          }}
+        />
+        
+        {/* Items */}
+        {items.map(item => (
+          <img
+            key={item.id}
+            src={item.isFinal ? finalItemImage : (item.isGood ? goodItemImage : badItemImage)}
+            alt={item.isFinal ? "Final Item" : (item.isGood ? "Good Item" : "Bad Item")}
+            className="absolute"
+            style={{
+              left: item.x,
+              top: item.y,
+              width: ITEM_SIZE,
+              height: ITEM_SIZE,
+            }}
+          />
+        ))}
+      </div>
+      
+      {gameOver && (
+        <div className="mt-4 text-center">
+          <div className="text-xl font-bold mb-2">Game Over!</div>
+          <button
+            onClick={handleRestart}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Play Again
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Game;
