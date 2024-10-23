@@ -87,8 +87,8 @@
         }
 
         #player {
-            width: 60px;
-            height: 60px;
+            width: 90px;
+            height: 90px;
             position: absolute;
             bottom: 0;
             transform: translateX(-50%);
@@ -99,8 +99,8 @@
         }
 
         .item {
-            width: 45px;
-            height: 45px;
+            width: 68px;
+            height: 68px;
             position: absolute;
             background-size: contain;
             background-repeat: no-repeat;
@@ -130,7 +130,7 @@
 </head>
 <body>
     <div id="introScreen">
-        <h1>🎈 Alles Gute zum Geburtstag! 🎂<br>Fang deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
+        <h1>🎈 Alles Gute zum Geburtstag! 🎂<br>Fange deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
         <button id="startButton">Spiel Starten</button>
     </div>
 
@@ -164,7 +164,7 @@
             win: 'win.mp3'
         };
 
-        // Game Elements
+        // Spiel-Elemente
         const gameArea = document.getElementById('gameArea');
         const player = document.getElementById('player');
         const scoreDisplay = document.getElementById('score');
@@ -172,36 +172,35 @@
         const gameMessage = document.getElementById('gameMessage');
         const finalScoreDisplay = document.getElementById('finalScore');
 
-        // Game State
+        // Spielzustand
         let score = 0;
         let items = [];
         let gameOver = false;
-        let finalItemActive = false;
+        let babyStage = 0;
+        let babyTimer = null;
         let lastTime = 0;
         let gameStartTime;
         let playerJumping = false;
         let playerVelocityY = 0;
         let touchStartY = 0;
-        let babyAttempts = 0;
 
-        // Game Settings
+        // Spieleinstellungen
         const GAME_WIDTH = 300;
         const GAME_HEIGHT = 400;
-        const PLAYER_SIZE = 60;
-        const ITEM_SIZE = 45;
-        const BASE_FALL_SPEED = 4;  // Increased base speed
-        const SPEED_INCREASE_FACTOR = 0.15;  // Increased speed progression
-        const SPAWN_INTERVAL = 1000;  // Decreased spawn interval
+        const PLAYER_SIZE = 90;
+        const ITEM_SIZE = 68;
+        const BASE_FALL_SPEED = 4;  // Basisgeschwindigkeit
+        const SPEED_INCREASE_FACTOR = 0.15;  // Geschwindigkeitsprogression
+        const SPAWN_INTERVAL = 1000;  // Spawn-Intervall
         const JUMP_FORCE = -15;
         const GRAVITY = 0.8;
-        const BABY_APPEAR_TIME = 20000;  // 20 seconds
-        const BABY_FALL_SPEED = BASE_FALL_SPEED * 0.25;  // 25% of base speed
+        const ITEM_COLLECTION_DURATION = 20000;  // 20 Sekunden
 
-        // Set up game visuals
+        // Spiel-Visuals
         gameArea.style.backgroundImage = `url(${IMAGES.background})`;
         player.style.backgroundImage = `url(${IMAGES.player})`;
 
-        // Sound Management
+        // Sound-Management
         const audio = {
             background: new Audio(SOUNDS.background),
             goodCatch: new Audio(SOUNDS.goodCatch),
@@ -228,7 +227,7 @@
             }, duration);
         }
 
-        // Jump Mechanics
+        // Sprungmechanik
         function handleTouchStart(e) {
             touchStartY = e.touches[0].clientY;
         }
@@ -236,7 +235,7 @@
         function handleTouchEnd(e) {
             const touchEndY = e.changedTouches[0].clientY;
             const swipeDistance = touchStartY - touchEndY;
-            
+
             if (swipeDistance > 50 && !playerJumping) {
                 initiateJump();
             }
@@ -254,7 +253,7 @@
                 playerVelocityY += GRAVITY;
                 const currentBottom = parseFloat(player.style.bottom || '0');
                 const newBottom = Math.max(0, currentBottom + playerVelocityY);
-                
+
                 if (newBottom <= 0) {
                     playerJumping = false;
                     playerVelocityY = 0;
@@ -283,35 +282,20 @@
             return BASE_FALL_SPEED * (1 + (SPEED_INCREASE_FACTOR * minutesPlayed));
         }
 
-        function updateFinalItem(item, timestamp, playerX) {
-            const wiggleX = item.startX + Math.sin(timestamp * 0.005) * 50;
-            const playerPosition = parseFloat(player.style.left) || GAME_WIDTH/2;
-            
-            const chaosX = Math.sin(timestamp * 0.01) * 30;
-            const chaosY = Math.cos(timestamp * 0.008) * 20;
-            
-            const trackingX = (playerPosition > item.x) ? 1 : -1;
-            
-            item.x = wiggleX + chaosX + (trackingX * 2);
-            item.y += BABY_FALL_SPEED + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
-            
-            return { x: item.x, y: item.y };
-        }
-
         function createItem() {
-            if (items.length >= 5 || gameOver || finalItemActive) return;
+            if (items.length >= 5 || gameOver) return;
 
             const isGood = Math.random() > 0.3;
             const itemImages = isGood ? IMAGES.goodItems : IMAGES.badItems;
             const imageIndex = Math.floor(Math.random() * itemImages.length);
-            
+
             const item = document.createElement('div');
             item.className = 'item';
             item.dataset.isGood = isGood;
             item.style.backgroundImage = `url(${itemImages[imageIndex]})`;
             item.style.left = `${Math.random() * (GAME_WIDTH - ITEM_SIZE)}px`;
             item.style.top = `-${ITEM_SIZE}px`;
-            
+
             gameArea.appendChild(item);
             items.push({
                 element: item,
@@ -320,25 +304,29 @@
             });
         }
 
-        function createFinalItem() {
-            showGameMessage("Fang das Baby!", 3000);
+        function createBaby(catchable) {
             const item = document.createElement('div');
             item.className = 'item';
-            item.dataset.isFinal = true;
+            item.dataset.isBaby = true;
+            item.dataset.catchable = catchable;
             item.style.backgroundImage = `url(${IMAGES.finalItem})`;
             item.style.left = `${(GAME_WIDTH - ITEM_SIZE) / 2}px`;
             item.style.top = `-${ITEM_SIZE}px`;
-            
+
             gameArea.appendChild(item);
             items.push({
                 element: item,
                 y: -ITEM_SIZE,
-                isFinal: true,
-                startX: (GAME_WIDTH - ITEM_SIZE) / 2,
-                x: (GAME_WIDTH - ITEM_SIZE) / 2,
-                attempts: 0
+                isBaby: true,
+                catchable: catchable,
+                x: (GAME_WIDTH - ITEM_SIZE) / 2
             });
-            finalItemActive = true;
+
+            if (catchable) {
+                showGameMessage("Fange das Baby!", 3000);
+            } else {
+                showGameMessage("Das Baby erscheint!", 3000);
+            }
         }
 
         function updateGame(timestamp) {
@@ -350,79 +338,111 @@
             updatePlayerJump();
 
             const playerRect = player.getBoundingClientRect();
-            
+
             items = items.filter(item => {
-                if (item.isFinal) {
-                    const newPos = updateFinalItem(item, timestamp, parseFloat(player.style.left));
-                    item.element.style.left = `${newPos.x}px`;
-                    item.y = newPos.y;
+                if (item.isBaby) {
+                    // Baby-Bewegung
+                    if (item.catchable) {
+                        // Fangbares Baby bewegt sich normal nach unten
+                        item.y += currentFallSpeed * (deltaTime / 16);
+                    } else {
+                        // Unfangbares Baby weicht aus
+                        const playerX = parseFloat(player.style.left) || GAME_WIDTH/2;
+                        item.x += (item.x < playerX ? -2 : 2);
+                        item.y += currentFallSpeed * (deltaTime / 16);
+                        item.element.style.left = `${item.x}px`;
+                    }
                 } else {
                     item.y += currentFallSpeed * (deltaTime / 16);
                 }
-                
+
                 item.element.style.top = `${item.y}px`;
-                
+
                 const itemRect = item.element.getBoundingClientRect();
-                
+
                 if (itemRect.bottom >= playerRect.top &&
                     itemRect.right >= playerRect.left &&
-                    itemRect.left <= playerRect.right) {
-                    
-                    if (item.isFinal) {
-                        item.attempts = (item.attempts || 0) + 1;
-                        if (item.attempts >= 3) {
+                    itemRect.left <= playerRect.right &&
+                    itemRect.top <= playerRect.bottom) {
+
+                    if (item.isBaby) {
+                        if (item.catchable) {
                             playSound('win');
                             endGame(true);
-                            return false;
                         } else {
-                            // Reset baby position on failed attempts
-                            item.y = -ITEM_SIZE;
-                            showGameMessage(`Versuch ${item.attempts}/3!`);
-                            return true;
+                            // Baby entkommt
+                            gameArea.removeChild(item.element);
+                            babyStage++;
+                            startBabyTimer();
                         }
                     } else {
                         playSound(item.isGood ? 'goodCatch' : 'badCatch');
                         score += item.isGood ? 10 : -5;
                         scoreDisplay.textContent = `Punkte: ${score}`;
                         gameArea.removeChild(item.element);
-                        return false;
                     }
-                }
-                
-                if (item.y > GAME_HEIGHT) {
-                    if (item.isFinal) {
-                        item.y = -ITEM_SIZE; // Reset baby position
-                        item.attempts = (item.attempts || 0) + 1;
-                        showGameMessage(`Versuch ${item.attempts}/3!`);
-                        return item.attempts < 3;
-                    }
-                    gameArea.removeChild(item.element);
                     return false;
                 }
-                
+
+                if (item.y > GAME_HEIGHT) {
+                    if (item.isBaby) {
+                        if (item.catchable) {
+                            // Spieler hat Baby nicht gefangen
+                            score -= 100;
+                            scoreDisplay.textContent = `Punkte: ${score}`;
+                            showGameMessage("Oh nein! Das Baby ist entkommen! -100 Punkte");
+                            gameArea.removeChild(item.element);
+                            startBabyTimer();
+                        } else {
+                            // Baby entkommt
+                            gameArea.removeChild(item.element);
+                            babyStage++;
+                            startBabyTimer();
+                        }
+                    } else {
+                        gameArea.removeChild(item.element);
+                    }
+                    return false;
+                }
+
                 return true;
             });
-            
+
             if (!gameOver) {
                 requestAnimationFrame(updateGame);
             }
         }
 
-
-function startSpawning() {
+        function startSpawning() {
             const spawnInterval = setInterval(() => {
                 if (gameOver) {
                     clearInterval(spawnInterval);
                     return;
                 }
-                
-                const timeElapsed = Date.now() - gameStartTime;
-                if (timeElapsed >= BABY_APPEAR_TIME && !finalItemActive) {
-                    createFinalItem();
-                } else if (timeElapsed < BABY_APPEAR_TIME) {
-                    createItem();
-                }
+                createItem();
             }, SPAWN_INTERVAL);
+        }
+
+        function startBabyTimer() {
+            if (babyStage < 2) {
+                // Warte bis zum nächsten Punkteschwellenwert
+                checkBabyAppearance();
+            } else {
+                // 20 Sekunden warten und dann Baby erscheinen lassen
+                babyTimer = setTimeout(() => {
+                    createBaby(true);
+                }, ITEM_COLLECTION_DURATION);
+            }
+        }
+
+        function checkBabyAppearance() {
+            if (gameOver) return;
+
+            if ((babyStage === 0 && score >= 100) || (babyStage === 1 && score >= 200)) {
+                createBaby(false);
+            } else {
+                requestAnimationFrame(checkBabyAppearance);
+            }
         }
 
         function endGame(won) {
@@ -431,7 +451,7 @@ function startSpawning() {
             audio.background.currentTime = 0;
             playSound(won ? 'win' : 'gameOver');
             gameOverDisplay.style.display = 'block';
-            
+
             if (won) {
                 gameOverDisplay.querySelector('h2').textContent = 'Du hast das Baby gefangen!';
             } else {
@@ -443,34 +463,40 @@ function startSpawning() {
         function restartGame() {
             score = 0;
             gameOver = false;
-            finalItemActive = false;
+            babyStage = 0;
+            if (babyTimer) clearTimeout(babyTimer);
             gameStartTime = Date.now();
             scoreDisplay.textContent = 'Punkte: 0';
             gameOverDisplay.style.display = 'none';
-            
+
             items.forEach(item => {
                 if (item.element.parentNode) {
                     gameArea.removeChild(item.element);
                 }
             });
             items = [];
-            
+
             audio.background.play();
-            
+
             lastTime = 0;
             requestAnimationFrame(updateGame);
             startSpawning();
+            startBabyTimer();
         }
 
         function startGame() {
             document.getElementById('introScreen').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
-            
+
+            // Spieler von Anfang an sichtbar machen
+            player.style.display = 'block';
+
             audio.background.play();
-            
+
             gameStartTime = Date.now();
             requestAnimationFrame(updateGame);
             startSpawning();
+            startBabyTimer();
         }
 
         document.getElementById('startButton').addEventListener('click', startGame);
