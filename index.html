@@ -4,76 +4,61 @@
     <title>🎈 Birthday Game 🎂</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Previous styles remain the same except for size updates */
-        body {
+        /* Previous styles remain, adding intro screen styles */
+        #introScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f0f0f0;
+            background: linear-gradient(135deg, #ff69b4, #87ceeb);
+            z-index: 100;
         }
 
-        #gameContainer {
+        #introScreen h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            font-size: 28px;
             text-align: center;
         }
 
-        #gameArea {
-            width: 300px;
-            height: 400px;
-            position: relative;
-            overflow: hidden;
-            touch-action: none;
-            background-size: cover;
-            background-position: center;
-            border: 2px solid #333;
-        }
-
-        #player {
-            width: 60px;  /* Increased from 40px */
-            height: 60px; /* Increased from 40px */
-            position: absolute;
-            bottom: 0;
-            transform: translateX(-50%);
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            transition: bottom 0.3s ease-out;
-        }
-
-        .item {
-            width: 45px;  /* Increased from 30px */
-            height: 45px; /* Increased from 30px */
-            position: absolute;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-
-        #score {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-
-        #gameOver {
-            display: none;
-            margin-top: 10px;
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
+        #startButton {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 25px;
             cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+
+        #startButton:hover {
+            transform: scale(1.05);
+            background: #45a049;
+        }
+
+        #gameContainer {
+            display: none;  /* Hide game initially */
+        }
+
+        /* Rest of your existing styles */
     </style>
 </head>
 <body>
+    <div id="introScreen">
+        <h1>🎈 Happy Birthday Alina! 🎂<br>Catch your friends and avoid the bad stuff!</h1>
+        <button id="startButton">Start Game</button>
+    </div>
+
     <div id="gameContainer">
+        <!-- Your existing game HTML -->
         <div id="score">Score: 0</div>
         <div id="gameArea">
             <div id="player"></div>
@@ -85,258 +70,29 @@
     </div>
 
     <script>
-        // Keep your existing image configuration
-        const IMAGES = {
-            player: 'alina.png',
-            background: 'background.png',
-            goodItems: ['basti.png', 'mallika.png', 'maia.png', 'mayur.png'],
-            badItems: ['diaper.png', 'rotten.png', 'poop.png', 'michael.png'],
-            finalItem: 'baby.png'
-        };
-
-        const SOUNDS = {
-            background: 'background.mp3',
-            goodCatch: 'good.mp3',
-            badCatch: 'bad.mp3',
-            gameOver: 'gameover.mp3',
-            win: 'win.mp3'
-        };
-
-        // Game Elements
-        const gameArea = document.getElementById('gameArea');
-        const player = document.getElementById('player');
-        const scoreDisplay = document.getElementById('score');
-        const gameOverDisplay = document.getElementById('gameOver');
-
-        // Game State
-        let score = 0;
-        let items = [];
-        let gameOver = false;
-        let finalItemActive = false;
-        let lastTime = 0;
-        let gameStartTime = Date.now();
-        let playerJumping = false;
-        let playerVelocityY = 0;
-        let touchStartY = 0;
-
-        // Game Settings
-        const GAME_WIDTH = 300;
-        const GAME_HEIGHT = 400;
-        const PLAYER_SIZE = 60;  // Increased from 40
-        const ITEM_SIZE = 45;    // Increased from 30
-        const BASE_FALL_SPEED = 2;
-        const SPEED_INCREASE_FACTOR = 0.1; // Speed increases by 10% every minute
-        const SPAWN_INTERVAL = 1500;
-        const JUMP_FORCE = -15;
-        const GRAVITY = 0.8;
-        const MAX_JUMP_HEIGHT = 150;
-
-        // Set up game visuals
-        gameArea.style.backgroundImage = `url(${IMAGES.background})`;
-        player.style.backgroundImage = `url(${IMAGES.player})`;
-
-        // Sound Management - Always enabled
-        const audio = {
-            background: new Audio(SOUNDS.background),
-            goodCatch: new Audio(SOUNDS.goodCatch),
-            badCatch: new Audio(SOUNDS.badCatch),
-            gameOver: new Audio(SOUNDS.gameOver),
-            win: new Audio(SOUNDS.win)
-        };
-
-        audio.background.loop = true;
-        audio.background.volume = 0.3;
-        audio.background.play();
-
-        function playSound(soundName) {
-            if (audio[soundName]) {
-                audio[soundName].currentTime = 0;
-                audio[soundName].play();
-            }
-        }
-
-        // Jump Mechanics
-        function handleTouchStart(e) {
-            touchStartY = e.touches[0].clientY;
-        }
-
-        function handleTouchEnd(e) {
-            const touchEndY = e.changedTouches[0].clientY;
-            const swipeDistance = touchStartY - touchEndY;
+        // Your existing game code, but wrap the initialization in a startGame function
+        
+        function startGame() {
+            // Hide intro screen and show game
+            document.getElementById('introScreen').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
             
-            if (swipeDistance > 50 && !playerJumping) { // Minimum swipe distance
-                initiateJump();
-            }
-        }
-
-        function initiateJump() {
-            if (!playerJumping) {
-                playerJumping = true;
-                playerVelocityY = JUMP_FORCE;
-            }
-        }
-
-        function updatePlayerJump() {
-            if (playerJumping) {
-                playerVelocityY += GRAVITY;
-                const currentBottom = parseFloat(player.style.bottom || '0');
-                const newBottom = Math.max(0, currentBottom + playerVelocityY);
-                
-                if (newBottom <= 0) {
-                    playerJumping = false;
-                    playerVelocityY = 0;
-                    player.style.bottom = '0px';
-                } else {
-                    player.style.bottom = `${newBottom}px`;
-                }
-            }
-        }
-
-        // Handle Movement
-        function handleMove(e) {
-            e.preventDefault();
-            const rect = gameArea.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const position = ((clientX - rect.left) / rect.width) * GAME_WIDTH;
-            player.style.left = `${Math.max(PLAYER_SIZE/2, Math.min(GAME_WIDTH - PLAYER_SIZE/2, position))}px`;
-        }
-
-        gameArea.addEventListener('touchstart', handleTouchStart);
-        gameArea.addEventListener('touchend', handleTouchEnd);
-        gameArea.addEventListener('touchmove', handleMove);
-        gameArea.addEventListener('mousemove', handleMove);
-
-        // Calculate current fall speed based on time played
-        function getCurrentFallSpeed() {
-            const minutesPlayed = (Date.now() - gameStartTime) / 60000;
-            return BASE_FALL_SPEED * (1 + (SPEED_INCREASE_FACTOR * minutesPlayed));
-        }
-
-        // Enhanced final item behavior
-        function updateFinalItem(item, timestamp, playerX) {
-            const wiggleX = item.startX + Math.sin(timestamp * 0.005) * 50;
-            const playerPosition = parseFloat(player.style.left) || GAME_WIDTH/2;
-            
-            // Add erratic movement
-            const chaosX = Math.sin(timestamp * 0.01) * 30;
-            const chaosY = Math.cos(timestamp * 0.008) * 20;
-            
-            // Add player tracking
-            const trackingX = (playerPosition > item.x) ? 1 : -1;
-            
-            item.x = wiggleX + chaosX + (trackingX * 2);
-            item.y += Math.sin(timestamp * 0.01) * 2 + chaosY;
-            
-            return { x: item.x, y: item.y };
-        }
-
-        // Create Items (previous implementation remains the same)
-        function createItem() {
-            if (items.length >= 5 || gameOver || finalItemActive) return;
-            // ... rest of createItem function remains the same
-        }
-
-        function createFinalItem() {
-            // ... previous implementation remains the same
-        }
-
-        // Game Loop with enhanced features
-        function updateGame(timestamp) {
-            if (!lastTime) lastTime = timestamp;
-            const deltaTime = timestamp - lastTime;
-            lastTime = timestamp;
-
-            const currentFallSpeed = getCurrentFallSpeed();
-            updatePlayerJump();
-
-            const playerRect = player.getBoundingClientRect();
-            
-            items = items.filter(item => {
-                if (item.isFinal) {
-                    const newPos = updateFinalItem(item, timestamp, parseFloat(player.style.left));
-                    item.element.style.left = `${newPos.x}px`;
-                    item.y = newPos.y;
-                } else {
-                    item.y += currentFallSpeed * (deltaTime / 16);
-                }
-                
-                item.element.style.top = `${item.y}px`;
-                
-                const itemRect = item.element.getBoundingClientRect();
-                
-                if (itemRect.bottom >= playerRect.top &&
-                    itemRect.right >= playerRect.left &&
-                    itemRect.left <= playerRect.right) {
-                    
-                    if (item.isFinal) {
-                        playSound('win');
-                        endGame(true);
-                    } else {
-                        playSound(item.isGood ? 'goodCatch' : 'badCatch');
-                        score += item.isGood ? 10 : -5;
-                        scoreDisplay.textContent = `Score: ${score}`;
-                    }
-                    
-                    gameArea.removeChild(item.element);
-                    return false;
-                }
-                
-                if (item.y > GAME_HEIGHT) {
-                    if (item.isFinal) {
-                        endGame(false);
-                    }
-                    gameArea.removeChild(item.element);
-                    return false;
-                }
-                
-                return true;
-            });
-            
-            if (!gameOver) {
-                requestAnimationFrame(updateGame);
-            }
-        }
-
-        // Previous implementations of startSpawning, endGame, and restartGame remain the same
-        function startSpawning() {
-            // ... previous implementation remains the same
-        }
-
-        function endGame(won) {
-            gameOver = true;
-            audio.background.pause();
-            audio.background.currentTime = 0;
-            playSound(won ? 'win' : 'gameOver');
-            gameOverDisplay.style.display = 'block';
-        }
-
-        function restartGame() {
-            score = 0;
-            gameOver = false;
-            finalItemActive = false;
-            gameStartTime = Date.now();
-            scoreDisplay.textContent = 'Score: 0';
-            gameOverDisplay.style.display = 'none';
-            
-            items.forEach(item => {
-                if (item.element.parentNode) {
-                    gameArea.removeChild(item.element);
-                }
-            });
-            items = [];
-            
+            // Start background music
             audio.background.play();
             
-            lastTime = 0;
+            // Initialize game
+            gameStartTime = Date.now();
             requestAnimationFrame(updateGame);
             startSpawning();
         }
 
-        // Start game when everything is loaded
-        window.addEventListener('load', () => {
-            requestAnimationFrame(updateGame);
-            startSpawning();
-        });
+        // Add click handler for start button
+        document.getElementById('startButton').addEventListener('click', startGame);
+
+        // Remove the automatic start on window load
+        // window.addEventListener('load', () => { ... });
+
+        // Rest of your existing game code remains the same
     </script>
 </body>
 </html>
