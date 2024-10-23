@@ -59,6 +59,11 @@
             text-align: center;
         }
 
+        #score {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
         #gameArea {
             width: 90vw;
             height: 80vh;
@@ -93,6 +98,7 @@
             height: 90px;
             position: absolute;
             bottom: 0;
+            left: 50%; /* Zentriert den Spieler horizontal */
             transform: translateX(-50%);
             background-size: contain;
             background-repeat: no-repeat;
@@ -108,11 +114,6 @@
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
-        }
-
-        #score {
-            font-size: 24px;
-            margin-bottom: 10px;
         }
 
         #gameOver {
@@ -272,7 +273,7 @@
             const rect = gameArea.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const position = ((clientX - rect.left) / rect.width) * GAME_WIDTH;
-            player.style.left = `${Math.max(PLAYER_SIZE/2, Math.min(GAME_WIDTH - PLAYER_SIZE/2, position))}px`;
+            player.style.left = `${Math.max(PLAYER_SIZE / 2, Math.min(GAME_WIDTH - PLAYER_SIZE / 2, position))}px`;
         }
 
         gameArea.addEventListener('touchstart', handleTouchStart, false);
@@ -456,8 +457,12 @@
             }
         }
 
+        function updateGameDimensions() {
+            GAME_WIDTH = gameArea.clientWidth;
+            GAME_HEIGHT = gameArea.clientHeight;
+        }
 
-        
+        window.addEventListener('resize', updateGameDimensions);
 
         function endGame(won) {
             gameOver = true;
@@ -492,6 +497,8 @@
 
             audio.background.play();
 
+            updateGameDimensions(); // Fügen Sie diesen Aufruf hinzu
+
             lastTime = 0;
             requestAnimationFrame(updateGame);
             startSpawning();
@@ -505,6 +512,9 @@
             audio.background.play();
 
             gameStartTime = Date.now();
+
+            updateGameDimensions(); // Fügen Sie diesen Aufruf hinzu
+
             requestAnimationFrame(updateGame);
             startSpawning();
             startBabyTimer();
