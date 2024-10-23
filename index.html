@@ -60,10 +60,8 @@
         }
 
         #gameArea {
-            width: 90vw;
-            height: 80vh;
-            max-width: 600px;
-            max-height: 800px;
+            width: 300px;
+            height: 400px;
             position: relative;
             overflow: hidden;
             touch-action: none;
@@ -89,8 +87,8 @@
         }
 
         #player {
-            width: 90px;
-            height: 90px;
+            width: 80px;
+            height: 80px;
             position: absolute;
             bottom: 0;
             transform: translateX(-50%);
@@ -133,7 +131,7 @@
 </head>
 <body>
     <div id="introScreen">
-        <h1>🎈 Alles Gute zum Geburtstag! 🎂<br>Fange deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
+        <h1>🎈 Alles Gute zum Geburtstag, Alina! 🎂</h1>
         <button id="startButton">Spiel starten</button>
     </div>
 
@@ -192,10 +190,10 @@
         let GAME_HEIGHT;
         const PLAYER_SIZE = 90;
         const ITEM_SIZE = 68;
-        const BASE_FALL_SPEED = 4;  // Basisgeschwindigkeit
+        const BASE_FALL_SPEED = 3;  // Basisgeschwindigkeit
         const SPEED_INCREASE_FACTOR = 0.15;  // Geschwindigkeitsprogression
         const SPAWN_INTERVAL = 1000;  // Spawn-Intervall
-        const JUMP_FORCE = -15;
+        const JUMP_FORCE = -5;
         const GRAVITY = 0.8;
         const ITEM_COLLECTION_DURATION = 20000;  // 20 Sekunden
 
@@ -327,9 +325,9 @@
             });
 
             if (catchable) {
-                showGameMessage("Fange das Baby!", 3000);
+                showGameMessage("Fange das Baby!", 2000);
             } else {
-                showGameMessage("Das Baby erscheint!", 3000);
+                showGameMessage("Das Baby erscheint!", 2000);
             }
         }
 
