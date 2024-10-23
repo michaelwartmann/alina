@@ -4,18 +4,133 @@
     <title>🎈 Alinas Geburtstagsparty 🎂</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Ihr CSS bleibt unverändert, außer dass die Standardgröße der Items entfernt wurde */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+
+        #introScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #ff69b4, #87ceeb);
+            z-index: 100;
+        }
+
+        #introScreen h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #startButton {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #startButton:hover {
+            transform: scale(1.05);
+            background: #45a049;
+        }
+
+        #gameContainer {
+            display: none;
+            text-align: center;
+        }
+
+        #score {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #gameArea {
+            width: 90vw;
+            height: 80vh;
+            max-width: 600px;
+            max-height: 800px;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #333;
+        }
+
+        #gameMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #ff69b4;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-weight: bold;
+            display: none;
+            z-index: 10;
+            background: rgba(255,255,255,0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        #player {
+            width: 90px;
+            height: 90px;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transition: bottom 0.3s ease-out;
+            display: block;
+        }
+
         .item {
             position: absolute;
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
         }
-        /* Rest des CSS bleibt gleich */
+
+        #gameOver {
+            display: none;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <!-- Ihr HTML bleibt unverändert -->
     <div id="introScreen">
         <h1>🎈 Alles Gute zum Geburtstag, Alina! 🎂<br>Fange deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
         <button id="startButton">Spiel starten</button>
@@ -79,7 +194,7 @@
         const BASE_FALL_SPEED = 4;  // Basisgeschwindigkeit
         const SPEED_INCREASE_FACTOR = 0.15;  // Geschwindigkeitsprogression
         const SPAWN_INTERVAL = 1000;  // Spawn-Intervall
-        const JUMP_FORCE = -20; // Erhöhter Sprungkraft
+        const JUMP_FORCE = -20; // Erhöhte Sprungkraft
         const GRAVITY = 0.6;    // Reduzierte Schwerkraft
         const ITEM_COLLECTION_DURATION = 20000;  // 20 Sekunden
 
@@ -160,7 +275,7 @@
 
         gameArea.addEventListener('touchstart', handleTouchStart, false);
         gameArea.addEventListener('touchend', handleTouchEnd, false);
-        gameArea.addEventListener('touchmove', handleMove, { passive: false }); // Mit { passive: false }
+        gameArea.addEventListener('touchmove', handleMove, { passive: false });
         gameArea.addEventListener('mousemove', handleMove, false);
 
         function getCurrentFallSpeed() {
@@ -265,8 +380,8 @@
                     }
                 } else {
                     // Seitliches Wegfliegen
-                    item.x += item.flyDirection * currentFallSpeed * 2; // Geschwindigkeit anpassen
-                    item.y += currentFallSpeed; // Optional, damit es weiter nach unten fällt
+                    item.x += item.flyDirection * currentFallSpeed * 2;
+                    item.y += currentFallSpeed;
                 }
                 item.element.style.left = `${item.x}px`;
             }
@@ -414,7 +529,7 @@
 
             audio.background.play();
 
-            updateGameDimensions(); // Aktualisieren der Spielabmessungen
+            updateGameDimensions();
 
             lastTime = 0;
             requestAnimationFrame(updateGame);
@@ -430,7 +545,7 @@
 
             gameStartTime = Date.now();
 
-            updateGameDimensions(); // Aktualisieren der Spielabmessungen
+            updateGameDimensions();
 
             requestAnimationFrame(updateGame);
             startSpawning();
