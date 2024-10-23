@@ -60,8 +60,10 @@
         }
 
         #gameArea {
-            width: 300px;
-            height: 400px;
+            width: 90vw;
+            height: 80vh;
+            max-width: 600px;
+            max-height: 800px;
             position: relative;
             overflow: hidden;
             touch-action: none;
@@ -96,6 +98,7 @@
             background-repeat: no-repeat;
             background-position: center;
             transition: bottom 0.3s ease-out;
+            display: block; /* Spieler von Anfang an sichtbar */
         }
 
         .item {
@@ -131,7 +134,7 @@
 <body>
     <div id="introScreen">
         <h1>🎈 Alles Gute zum Geburtstag! 🎂<br>Fange deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
-        <button id="startButton">Spiel Starten</button>
+        <button id="startButton">Spiel starten</button>
     </div>
 
     <div id="gameContainer">
@@ -185,8 +188,8 @@
         let touchStartY = 0;
 
         // Spieleinstellungen
-        const GAME_WIDTH = 300;
-        const GAME_HEIGHT = 400;
+        let GAME_WIDTH;
+        let GAME_HEIGHT;
         const PLAYER_SIZE = 90;
         const ITEM_SIZE = 68;
         const BASE_FALL_SPEED = 4;  // Basisgeschwindigkeit
@@ -272,10 +275,10 @@
             player.style.left = `${Math.max(PLAYER_SIZE/2, Math.min(GAME_WIDTH - PLAYER_SIZE/2, position))}px`;
         }
 
-        gameArea.addEventListener('touchstart', handleTouchStart);
-        gameArea.addEventListener('touchend', handleTouchEnd);
-        gameArea.addEventListener('touchmove', handleMove);
-        gameArea.addEventListener('mousemove', handleMove);
+        gameArea.addEventListener('touchstart', handleTouchStart, false);
+        gameArea.addEventListener('touchend', handleTouchEnd, false);
+        gameArea.addEventListener('touchmove', handleMove, false);
+        gameArea.addEventListener('mousemove', handleMove, false);
 
         function getCurrentFallSpeed() {
             const minutesPlayed = (Date.now() - gameStartTime) / 60000;
@@ -319,13 +322,31 @@
                 y: -ITEM_SIZE,
                 isBaby: true,
                 catchable: catchable,
-                x: (GAME_WIDTH - ITEM_SIZE) / 2
+                x: (GAME_WIDTH - ITEM_SIZE) / 2,
+                startX: (GAME_WIDTH - ITEM_SIZE) / 2
             });
 
             if (catchable) {
                 showGameMessage("Fange das Baby!", 3000);
             } else {
                 showGameMessage("Das Baby erscheint!", 3000);
+            }
+        }
+
+        function updateBabyMovement(item, timestamp) {
+            if (item.catchable) {
+                // Fangbares Baby bewegt sich normal nach unten
+                item.y += getCurrentFallSpeed();
+            } else {
+                // Unfangbares Baby hat komplexe Bewegungsmuster
+                const wiggleX = item.startX + Math.sin(timestamp * 0.005) * 50;
+                const chaosX = Math.sin(timestamp * 0.01) * 30;
+                const chaosY = Math.cos(timestamp * 0.008) * 20;
+
+                item.x = wiggleX + chaosX;
+                item.y += getCurrentFallSpeed() + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
+
+                item.element.style.left = `${item.x}px`;
             }
         }
 
@@ -341,17 +362,7 @@
 
             items = items.filter(item => {
                 if (item.isBaby) {
-                    // Baby-Bewegung
-                    if (item.catchable) {
-                        // Fangbares Baby bewegt sich normal nach unten
-                        item.y += currentFallSpeed * (deltaTime / 16);
-                    } else {
-                        // Unfangbares Baby weicht aus
-                        const playerX = parseFloat(player.style.left) || GAME_WIDTH/2;
-                        item.x += (item.x < playerX ? -2 : 2);
-                        item.y += currentFallSpeed * (deltaTime / 16);
-                        item.element.style.left = `${item.x}px`;
-                    }
+                    updateBabyMovement(item, timestamp);
                 } else {
                     item.y += currentFallSpeed * (deltaTime / 16);
                 }
@@ -424,11 +435,11 @@
         }
 
         function startBabyTimer() {
+            if (gameOver) return;
+
             if (babyStage < 2) {
-                // Warte bis zum nächsten Punkteschwellenwert
                 checkBabyAppearance();
             } else {
-                // 20 Sekunden warten und dann Baby erscheinen lassen
                 babyTimer = setTimeout(() => {
                     createBaby(true);
                 }, ITEM_COLLECTION_DURATION);
@@ -444,6 +455,14 @@
                 requestAnimationFrame(checkBabyAppearance);
             }
         }
+
+        function updateGameDimensions() {
+            GAME_WIDTH = gameArea.clientWidth;
+            GAME_HEIGHT = gameArea.clientHeight;
+        }
+
+        window.addEventListener('resize', updateGameDimensions);
+        updateGameDimensions();
 
         function endGame(won) {
             gameOver = true;
@@ -487,9 +506,6 @@
         function startGame() {
             document.getElementById('introScreen').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
-
-            // Spieler von Anfang an sichtbar machen
-            player.style.display = 'block';
 
             audio.background.play();
 
