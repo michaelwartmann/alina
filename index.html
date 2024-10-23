@@ -4,51 +4,8 @@
     <title>🎈 Birthday Game 🎂</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Previous styles remain, adding intro screen styles */
-        #introScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #ff69b4, #87ceeb);
-            z-index: 100;
-        }
-
-        #introScreen h1 {
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin-bottom: 30px;
-            font-size: 28px;
-            text-align: center;
-        }
-
-        #startButton {
-            padding: 15px 30px;
-            font-size: 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        #startButton:hover {
-            transform: scale(1.05);
-            background: #45a049;
-        }
-
-        #gameContainer {
-            display: none;  /* Hide game initially */
-        }
-
-        /* Rest of your existing styles */
+        /* Your existing styles remain unchanged */
+        /* ... */
     </style>
 </head>
 <body>
@@ -70,8 +27,151 @@
     </div>
 
     <script>
-        // Your existing game code, but wrap the initialization in a startGame function
-        
+        // Move all variable declarations to the top
+        let gameArea = document.getElementById('gameArea');
+        let player = document.getElementById('player');
+        let scoreElement = document.getElementById('score');
+        let gameOverScreen = document.getElementById('gameOver');
+
+        let keys = {};
+        let speed = 5;
+        let friends = [];
+        let enemies = [];
+        let score = 0;
+        let gameStartTime;
+
+        // Initialize audio before using it
+        let audio = {
+            background: new Audio('assets/background.mp3'),
+            friend: new Audio('assets/friend.mp3'),
+            enemy: new Audio('assets/enemy.mp3'),
+            gameOver: new Audio('assets/gameover.mp3')
+        };
+
+        audio.background.loop = true;
+
+        // Event listeners for key presses
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Define all functions after variables are declared
+        function movePlayer() {
+            let rect = player.getBoundingClientRect();
+            if (keys['ArrowLeft'] && rect.left > 0) {
+                player.style.left = rect.left - speed + 'px';
+            }
+            if (keys['ArrowRight'] && rect.right < window.innerWidth) {
+                player.style.left = rect.left + speed + 'px';
+            }
+        }
+
+        function spawnFriend() {
+            let friend = document.createElement('div');
+            friend.classList.add('friend');
+            friend.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+            friend.style.top = '-50px';
+            gameArea.appendChild(friend);
+            friends.push(friend);
+        }
+
+        function spawnEnemy() {
+            let enemy = document.createElement('div');
+            enemy.classList.add('enemy');
+            enemy.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+            enemy.style.top = '-50px';
+            gameArea.appendChild(enemy);
+            enemies.push(enemy);
+        }
+
+        function isColliding(a, b) {
+            let rect1 = a.getBoundingClientRect();
+            let rect2 = b.getBoundingClientRect();
+
+            return !(
+                rect1.top > rect2.bottom ||
+                rect1.bottom < rect2.top ||
+                rect1.left > rect2.right ||
+                rect1.right < rect2.left
+            );
+        }
+
+        function updateGame() {
+            movePlayer();
+
+            friends.forEach((friend, index) => {
+                let rect = friend.getBoundingClientRect();
+                if (rect.top > window.innerHeight) {
+                    friend.remove();
+                    friends.splice(index, 1);
+                } else {
+                    friend.style.top = rect.top + 2 + 'px';
+
+                    if (isColliding(friend, player)) {
+                        audio.friend.play();
+                        score += 10;
+                        scoreElement.innerText = 'Score: ' + score;
+                        friend.remove();
+                        friends.splice(index, 1);
+                    }
+                }
+            });
+
+            enemies.forEach((enemy, index) => {
+                let rect = enemy.getBoundingClientRect();
+                if (rect.top > window.innerHeight) {
+                    enemy.remove();
+                    enemies.splice(index, 1);
+                } else {
+                    enemy.style.top = rect.top + 4 + 'px';
+
+                    if (isColliding(enemy, player)) {
+                        audio.enemy.play();
+                        endGame();
+                    }
+                }
+            });
+
+            if (gameOverScreen.style.display !== 'flex') {
+                requestAnimationFrame(updateGame);
+            }
+        }
+
+        function startSpawning() {
+            spawnFriend();
+            spawnEnemy();
+
+            if (gameOverScreen.style.display !== 'flex') {
+                setTimeout(startSpawning, 1000);
+            }
+        }
+
+        function endGame() {
+            audio.background.pause();
+            audio.gameOver.play();
+            gameOverScreen.style.display = 'flex';
+        }
+
+        function restartGame() {
+            gameOverScreen.style.display = 'none';
+            score = 0;
+            scoreElement.innerText = 'Score: 0';
+            friends.forEach(friend => friend.remove());
+            enemies.forEach(enemy => enemy.remove());
+            friends = [];
+            enemies = [];
+            player.style.left = 'calc(50% - 25px)';
+            audio.background.currentTime = 0;
+            audio.background.play();
+            requestAnimationFrame(updateGame);
+            startSpawning();
+        }
+
+        // Define the startGame function after variables and functions
         function startGame() {
             // Hide intro screen and show game
             document.getElementById('introScreen').style.display = 'none';
@@ -91,8 +191,6 @@
 
         // Remove the automatic start on window load
         // window.addEventListener('load', () => { ... });
-
-        // Rest of your existing game code remains the same
     </script>
 </body>
 </html>
