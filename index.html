@@ -366,7 +366,7 @@
                     const chaosY = Math.cos(timestamp * 0.008) * 20;
 
                     item.x = wiggleX + chaosX;
-                    item.y += currentFallSpeed + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
+                    item.y += currentFallSpeed + Math.sin(timestamp * 0.01) * 3 + chaosY * 0.3;
             } else {
                 if (!item.hasFlownAway) {
                     // Wackelbewegung
@@ -375,7 +375,7 @@
                     const chaosY = Math.cos(timestamp * 0.008) * 20;
 
                     item.x = wiggleX + chaosX;
-                    item.y += currentFallSpeed + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
+                    item.y += currentFallSpeed + Math.sin(timestamp * 0.01) * 3 + chaosY * 0.3;
 
                     // Prüfen, ob 5 Sekunden vergangen sind
                     if (Date.now() - item.appearanceTime >= 5000) {
@@ -386,7 +386,7 @@
                 } else {
                     // Seitliches Wegfliegen
                     item.x += item.flyDirection * currentFallSpeed * 2;
-                    item.y += currentFallSpeed;
+                    item.y += currentFallSpeed-4;
                 }
                 item.element.style.left = `${item.x}px`;
             }
