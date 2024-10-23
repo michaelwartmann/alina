@@ -108,8 +108,6 @@
         }
 
         .item {
-            width: 68px;
-            height: 68px;
             position: absolute;
             background-size: contain;
             background-repeat: no-repeat;
@@ -134,7 +132,7 @@
 </head>
 <body>
     <div id="introScreen">
-        <h1>🎈 Alles Gute zum Geburtstag, Alina! 🎂</h1>
+        <h1>🎈 Alles Gute zum Geburtstag, Alina! 🎂<br>Fange deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
         <button id="startButton">Spiel starten</button>
     </div>
 
@@ -196,8 +194,8 @@
         const BASE_FALL_SPEED = 4;  // Basisgeschwindigkeit
         const SPEED_INCREASE_FACTOR = 0.15;  // Geschwindigkeitsprogression
         const SPAWN_INTERVAL = 1000;  // Spawn-Intervall
-        const JUMP_FORCE = -15;
-        const GRAVITY = 0.8;
+        const JUMP_FORCE = -20; // Erhöhter Sprungkraft
+        const GRAVITY = 0.6;    // Reduzierte Schwerkraft
         const ITEM_COLLECTION_DURATION = 20000;  // 20 Sekunden
 
         // Spiel-Visuals
@@ -269,7 +267,7 @@
         }
 
         function handleMove(e) {
-            e.preventDefault();
+            // e.preventDefault(); // Entfernen oder modifizieren Sie diese Zeile
             const rect = gameArea.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const position = ((clientX - rect.left) / rect.width) * GAME_WIDTH;
@@ -278,7 +276,7 @@
 
         gameArea.addEventListener('touchstart', handleTouchStart, false);
         gameArea.addEventListener('touchend', handleTouchEnd, false);
-        gameArea.addEventListener('touchmove', handleMove, false);
+        gameArea.addEventListener('touchmove', handleMove, { passive: false }); // Mit { passive: false }
         gameArea.addEventListener('mousemove', handleMove, false);
 
         function getCurrentFallSpeed() {
@@ -292,19 +290,36 @@
             const isGood = Math.random() > 0.3;
             const itemImages = isGood ? IMAGES.goodItems : IMAGES.badItems;
             const imageIndex = Math.floor(Math.random() * itemImages.length);
+            const imageName = itemImages[imageIndex];
 
             const item = document.createElement('div');
             item.className = 'item';
             item.dataset.isGood = isGood;
-            item.style.backgroundImage = `url(${itemImages[imageIndex]})`;
-            item.style.left = `${Math.random() * (GAME_WIDTH - ITEM_SIZE)}px`;
-            item.style.top = `-${ITEM_SIZE}px`;
+            item.style.backgroundImage = `url(${imageName})`;
+
+            // Standardgröße
+            let itemWidth = ITEM_SIZE;
+            let itemHeight = ITEM_SIZE;
+
+            // Wenn es basti.png ist, Größe erhöhen
+            if (imageName === 'basti.png') {
+                itemWidth *= 1.5;  // 50% größer
+                itemHeight *= 1.5;
+            }
+
+            item.style.width = `${itemWidth}px`;
+            item.style.height = `${itemHeight}px`;
+
+            item.style.left = `${Math.random() * (GAME_WIDTH - itemWidth)}px`;
+            item.style.top = `-${itemHeight}px`;
 
             gameArea.appendChild(item);
             items.push({
                 element: item,
-                y: -ITEM_SIZE,
-                isGood: isGood
+                y: -itemHeight,
+                isGood: isGood,
+                width: itemWidth,
+                height: itemHeight
             });
         }
 
@@ -314,6 +329,8 @@
             item.dataset.isBaby = true;
             item.dataset.catchable = catchable;
             item.style.backgroundImage = `url(${IMAGES.finalItem})`;
+            item.style.width = `${ITEM_SIZE}px`;
+            item.style.height = `${ITEM_SIZE}px`;
             item.style.left = `${(GAME_WIDTH - ITEM_SIZE) / 2}px`;
             item.style.top = `-${ITEM_SIZE}px`;
 
@@ -324,7 +341,9 @@
                 isBaby: true,
                 catchable: catchable,
                 x: (GAME_WIDTH - ITEM_SIZE) / 2,
-                startX: (GAME_WIDTH - ITEM_SIZE) / 2
+                startX: (GAME_WIDTH - ITEM_SIZE) / 2,
+                hasFlownAway: false,
+                flyDirection: 0
             });
 
             if (catchable) {
@@ -335,18 +354,31 @@
         }
 
         function updateBabyMovement(item, timestamp) {
+            const currentFallSpeed = getCurrentFallSpeed();
             if (item.catchable) {
                 // Fangbares Baby bewegt sich normal nach unten
-                item.y += getCurrentFallSpeed();
+                item.y += currentFallSpeed;
             } else {
-                // Unfangbares Baby hat komplexe Bewegungsmuster
-                const wiggleX = item.startX + Math.sin(timestamp * 0.005) * 50;
-                const chaosX = Math.sin(timestamp * 0.01) * 30;
-                const chaosY = Math.cos(timestamp * 0.008) * 20;
+                if (!item.hasFlownAway) {
+                    // Wackelbewegung
+                    const wiggleX = item.startX + Math.sin(timestamp * 0.005) * 50;
+                    const chaosX = Math.sin(timestamp * 0.01) * 30;
+                    const chaosY = Math.cos(timestamp * 0.008) * 20;
 
-                item.x = wiggleX + chaosX;
-                item.y += getCurrentFallSpeed() + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
+                    item.x = wiggleX + chaosX;
+                    item.y += currentFallSpeed + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
 
+                    // Nach einer bestimmten Position fliegt das Baby zur Seite
+                    if (item.y > GAME_HEIGHT * 0.3) {
+                        item.hasFlownAway = true;
+                        // Bestimmen Sie die Richtung (links oder rechts)
+                        item.flyDirection = Math.random() < 0.5 ? -1 : 1;
+                    }
+                } else {
+                    // Seitliches Wegfliegen
+                    item.x += item.flyDirection * currentFallSpeed * 2; // Geschwindigkeit anpassen
+                    item.y += currentFallSpeed; // Optional, damit es weiter nach unten fällt
+                }
                 item.element.style.left = `${item.x}px`;
             }
         }
@@ -396,24 +428,21 @@
                     return false;
                 }
 
-                if (item.y > GAME_HEIGHT) {
+                // Überprüfen, ob das Item außerhalb des Bildschirms ist
+                if (item.y > GAME_HEIGHT || item.x < -item.width || item.x > GAME_WIDTH) {
                     if (item.isBaby) {
                         if (item.catchable) {
                             // Spieler hat Baby nicht gefangen
                             score -= 100;
                             scoreDisplay.textContent = `Punkte: ${score}`;
                             showGameMessage("Oh nein! Das Baby ist entkommen! -100 Punkte");
-                            gameArea.removeChild(item.element);
-                            startBabyTimer();
                         } else {
                             // Baby entkommt
-                            gameArea.removeChild(item.element);
                             babyStage++;
                             startBabyTimer();
                         }
-                    } else {
-                        gameArea.removeChild(item.element);
                     }
+                    gameArea.removeChild(item.element);
                     return false;
                 }
 
@@ -497,7 +526,7 @@
 
             audio.background.play();
 
-            updateGameDimensions(); // Fügen Sie diesen Aufruf hinzu
+            updateGameDimensions(); // Aktualisieren der Spielabmessungen
 
             lastTime = 0;
             requestAnimationFrame(updateGame);
@@ -513,7 +542,7 @@
 
             gameStartTime = Date.now();
 
-            updateGameDimensions(); // Fügen Sie diesen Aufruf hinzu
+            updateGameDimensions(); // Aktualisieren der Spielabmessungen
 
             requestAnimationFrame(updateGame);
             startSpawning();
