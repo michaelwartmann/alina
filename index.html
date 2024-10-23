@@ -1,196 +1,479 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>🎈 Birthday Game 🎂</title>
+    <title>🎈 Alinas Geburtstagsparty 🎂</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Your existing styles remain unchanged */
-        /* ... */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+
+        #introScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #ff69b4, #87ceeb);
+            z-index: 100;
+        }
+
+        #introScreen h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            font-size: 28px;
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        #startButton {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #startButton:hover {
+            transform: scale(1.05);
+            background: #45a049;
+        }
+
+        #gameContainer {
+            display: none;
+            text-align: center;
+        }
+
+        #gameArea {
+            width: 300px;
+            height: 400px;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #333;
+        }
+
+        #gameMessage {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #ff69b4;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-weight: bold;
+            display: none;
+            z-index: 10;
+            background: rgba(255,255,255,0.8);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        #player {
+            width: 60px;
+            height: 60px;
+            position: absolute;
+            bottom: 0;
+            transform: translateX(-50%);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transition: bottom 0.3s ease-out;
+        }
+
+        .item {
+            width: 45px;
+            height: 45px;
+            position: absolute;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        #score {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #gameOver {
+            display: none;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div id="introScreen">
-        <h1>🎈 Happy Birthday Alina! 🎂<br>Catch your friends and avoid the bad stuff!</h1>
-        <button id="startButton">Start Game</button>
+        <h1>🎈 Alles Gute zum Geburtstag! 🎂<br>Fang deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
+        <button id="startButton">Spiel Starten</button>
     </div>
 
     <div id="gameContainer">
-        <!-- Your existing game HTML -->
-        <div id="score">Score: 0</div>
+        <div id="score">Punkte: 0</div>
         <div id="gameArea">
+            <div id="gameMessage"></div>
             <div id="player"></div>
         </div>
         <div id="gameOver">
-            <h2>Game Over!</h2>
-            <button onclick="restartGame()">Play Again</button>
+            <h2>Spiel vorbei!</h2>
+            <p id="finalScore"></p>
+            <button onclick="restartGame()">Nochmal spielen</button>
         </div>
     </div>
 
     <script>
-        // Move all variable declarations to the top
-        let gameArea = document.getElementById('gameArea');
-        let player = document.getElementById('player');
-        let scoreElement = document.getElementById('score');
-        let gameOverScreen = document.getElementById('gameOver');
+        const IMAGES = {
+            player: 'alina.png',
+            background: 'background.png',
+            goodItems: ['basti.png', 'mallika.png', 'maia.png', 'mayur.png'],
+            badItems: ['diaper.png', 'rotten.png', 'poop.png', 'michael.png'],
+            finalItem: 'baby.png'
+        };
 
-        let keys = {};
-        let speed = 5;
-        let friends = [];
-        let enemies = [];
+        const SOUNDS = {
+            background: 'background.mp3',
+            goodCatch: 'good.mp3',
+            badCatch: 'bad.mp3',
+            gameOver: 'gameover.mp3',
+            win: 'win.mp3'
+        };
+
+        // Game Elements
+        const gameArea = document.getElementById('gameArea');
+        const player = document.getElementById('player');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverDisplay = document.getElementById('gameOver');
+        const gameMessage = document.getElementById('gameMessage');
+        const finalScoreDisplay = document.getElementById('finalScore');
+
+        // Game State
         let score = 0;
+        let items = [];
+        let gameOver = false;
+        let finalItemActive = false;
+        let lastTime = 0;
         let gameStartTime;
+        let playerJumping = false;
+        let playerVelocityY = 0;
+        let touchStartY = 0;
+        let babyAttempts = 0;
 
-        // Initialize audio before using it
-        let audio = {
-            background: new Audio('assets/background.mp3'),
-            friend: new Audio('assets/friend.mp3'),
-            enemy: new Audio('assets/enemy.mp3'),
-            gameOver: new Audio('assets/gameover.mp3')
+        // Game Settings
+        const GAME_WIDTH = 300;
+        const GAME_HEIGHT = 400;
+        const PLAYER_SIZE = 60;
+        const ITEM_SIZE = 45;
+        const BASE_FALL_SPEED = 4;  // Increased base speed
+        const SPEED_INCREASE_FACTOR = 0.15;  // Increased speed progression
+        const SPAWN_INTERVAL = 1000;  // Decreased spawn interval
+        const JUMP_FORCE = -15;
+        const GRAVITY = 0.8;
+        const BABY_APPEAR_TIME = 20000;  // 20 seconds
+        const BABY_FALL_SPEED = BASE_FALL_SPEED * 0.25;  // 25% of base speed
+
+        // Set up game visuals
+        gameArea.style.backgroundImage = `url(${IMAGES.background})`;
+        player.style.backgroundImage = `url(${IMAGES.player})`;
+
+        // Sound Management
+        const audio = {
+            background: new Audio(SOUNDS.background),
+            goodCatch: new Audio(SOUNDS.goodCatch),
+            badCatch: new Audio(SOUNDS.badCatch),
+            gameOver: new Audio(SOUNDS.gameOver),
+            win: new Audio(SOUNDS.win)
         };
 
         audio.background.loop = true;
+        audio.background.volume = 0.3;
 
-        // Event listeners for key presses
-        document.addEventListener('keydown', (e) => {
-            keys[e.key] = true;
-        });
-
-        document.addEventListener('keyup', (e) => {
-            keys[e.key] = false;
-        });
-
-        // Define all functions after variables are declared
-        function movePlayer() {
-            let rect = player.getBoundingClientRect();
-            if (keys['ArrowLeft'] && rect.left > 0) {
-                player.style.left = rect.left - speed + 'px';
-            }
-            if (keys['ArrowRight'] && rect.right < window.innerWidth) {
-                player.style.left = rect.left + speed + 'px';
+        function playSound(soundName) {
+            if (audio[soundName]) {
+                audio[soundName].currentTime = 0;
+                audio[soundName].play();
             }
         }
 
-        function spawnFriend() {
-            let friend = document.createElement('div');
-            friend.classList.add('friend');
-            friend.style.left = Math.random() * (window.innerWidth - 50) + 'px';
-            friend.style.top = '-50px';
-            gameArea.appendChild(friend);
-            friends.push(friend);
+        function showGameMessage(message, duration = 2000) {
+            gameMessage.textContent = message;
+            gameMessage.style.display = 'block';
+            setTimeout(() => {
+                gameMessage.style.display = 'none';
+            }, duration);
         }
 
-        function spawnEnemy() {
-            let enemy = document.createElement('div');
-            enemy.classList.add('enemy');
-            enemy.style.left = Math.random() * (window.innerWidth - 50) + 'px';
-            enemy.style.top = '-50px';
-            gameArea.appendChild(enemy);
-            enemies.push(enemy);
+        // Jump Mechanics
+        function handleTouchStart(e) {
+            touchStartY = e.touches[0].clientY;
         }
 
-        function isColliding(a, b) {
-            let rect1 = a.getBoundingClientRect();
-            let rect2 = b.getBoundingClientRect();
-
-            return !(
-                rect1.top > rect2.bottom ||
-                rect1.bottom < rect2.top ||
-                rect1.left > rect2.right ||
-                rect1.right < rect2.left
-            );
+        function handleTouchEnd(e) {
+            const touchEndY = e.changedTouches[0].clientY;
+            const swipeDistance = touchStartY - touchEndY;
+            
+            if (swipeDistance > 50 && !playerJumping) {
+                initiateJump();
+            }
         }
 
-        function updateGame() {
-            movePlayer();
+        function initiateJump() {
+            if (!playerJumping) {
+                playerJumping = true;
+                playerVelocityY = JUMP_FORCE;
+            }
+        }
 
-            friends.forEach((friend, index) => {
-                let rect = friend.getBoundingClientRect();
-                if (rect.top > window.innerHeight) {
-                    friend.remove();
-                    friends.splice(index, 1);
+        function updatePlayerJump() {
+            if (playerJumping) {
+                playerVelocityY += GRAVITY;
+                const currentBottom = parseFloat(player.style.bottom || '0');
+                const newBottom = Math.max(0, currentBottom + playerVelocityY);
+                
+                if (newBottom <= 0) {
+                    playerJumping = false;
+                    playerVelocityY = 0;
+                    player.style.bottom = '0px';
                 } else {
-                    friend.style.top = rect.top + 2 + 'px';
+                    player.style.bottom = `${newBottom}px`;
+                }
+            }
+        }
 
-                    if (isColliding(friend, player)) {
-                        audio.friend.play();
-                        score += 10;
-                        scoreElement.innerText = 'Score: ' + score;
-                        friend.remove();
-                        friends.splice(index, 1);
+        function handleMove(e) {
+            e.preventDefault();
+            const rect = gameArea.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const position = ((clientX - rect.left) / rect.width) * GAME_WIDTH;
+            player.style.left = `${Math.max(PLAYER_SIZE/2, Math.min(GAME_WIDTH - PLAYER_SIZE/2, position))}px`;
+        }
+
+        gameArea.addEventListener('touchstart', handleTouchStart);
+        gameArea.addEventListener('touchend', handleTouchEnd);
+        gameArea.addEventListener('touchmove', handleMove);
+        gameArea.addEventListener('mousemove', handleMove);
+
+        function getCurrentFallSpeed() {
+            const minutesPlayed = (Date.now() - gameStartTime) / 60000;
+            return BASE_FALL_SPEED * (1 + (SPEED_INCREASE_FACTOR * minutesPlayed));
+        }
+
+        function updateFinalItem(item, timestamp, playerX) {
+            const wiggleX = item.startX + Math.sin(timestamp * 0.005) * 50;
+            const playerPosition = parseFloat(player.style.left) || GAME_WIDTH/2;
+            
+            const chaosX = Math.sin(timestamp * 0.01) * 30;
+            const chaosY = Math.cos(timestamp * 0.008) * 20;
+            
+            const trackingX = (playerPosition > item.x) ? 1 : -1;
+            
+            item.x = wiggleX + chaosX + (trackingX * 2);
+            item.y += BABY_FALL_SPEED + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
+            
+            return { x: item.x, y: item.y };
+        }
+
+        function createItem() {
+            if (items.length >= 5 || gameOver || finalItemActive) return;
+
+            const isGood = Math.random() > 0.3;
+            const itemImages = isGood ? IMAGES.goodItems : IMAGES.badItems;
+            const imageIndex = Math.floor(Math.random() * itemImages.length);
+            
+            const item = document.createElement('div');
+            item.className = 'item';
+            item.dataset.isGood = isGood;
+            item.style.backgroundImage = `url(${itemImages[imageIndex]})`;
+            item.style.left = `${Math.random() * (GAME_WIDTH - ITEM_SIZE)}px`;
+            item.style.top = `-${ITEM_SIZE}px`;
+            
+            gameArea.appendChild(item);
+            items.push({
+                element: item,
+                y: -ITEM_SIZE,
+                isGood: isGood
+            });
+        }
+
+        function createFinalItem() {
+            showGameMessage("Fang das Baby!", 3000);
+            const item = document.createElement('div');
+            item.className = 'item';
+            item.dataset.isFinal = true;
+            item.style.backgroundImage = `url(${IMAGES.finalItem})`;
+            item.style.left = `${(GAME_WIDTH - ITEM_SIZE) / 2}px`;
+            item.style.top = `-${ITEM_SIZE}px`;
+            
+            gameArea.appendChild(item);
+            items.push({
+                element: item,
+                y: -ITEM_SIZE,
+                isFinal: true,
+                startX: (GAME_WIDTH - ITEM_SIZE) / 2,
+                x: (GAME_WIDTH - ITEM_SIZE) / 2,
+                attempts: 0
+            });
+            finalItemActive = true;
+        }
+
+        function updateGame(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            const currentFallSpeed = getCurrentFallSpeed();
+            updatePlayerJump();
+
+            const playerRect = player.getBoundingClientRect();
+            
+            items = items.filter(item => {
+                if (item.isFinal) {
+                    const newPos = updateFinalItem(item, timestamp, parseFloat(player.style.left));
+                    item.element.style.left = `${newPos.x}px`;
+                    item.y = newPos.y;
+                } else {
+                    item.y += currentFallSpeed * (deltaTime / 16);
+                }
+                
+                item.element.style.top = `${item.y}px`;
+                
+                const itemRect = item.element.getBoundingClientRect();
+                
+                if (itemRect.bottom >= playerRect.top &&
+                    itemRect.right >= playerRect.left &&
+                    itemRect.left <= playerRect.right) {
+                    
+                    if (item.isFinal) {
+                        item.attempts = (item.attempts || 0) + 1;
+                        if (item.attempts >= 3) {
+                            playSound('win');
+                            endGame(true);
+                            return false;
+                        } else {
+                            // Reset baby position on failed attempts
+                            item.y = -ITEM_SIZE;
+                            showGameMessage(`Versuch ${item.attempts}/3!`);
+                            return true;
+                        }
+                    } else {
+                        playSound(item.isGood ? 'goodCatch' : 'badCatch');
+                        score += item.isGood ? 10 : -5;
+                        scoreDisplay.textContent = `Punkte: ${score}`;
+                        gameArea.removeChild(item.element);
+                        return false;
                     }
                 }
-            });
-
-            enemies.forEach((enemy, index) => {
-                let rect = enemy.getBoundingClientRect();
-                if (rect.top > window.innerHeight) {
-                    enemy.remove();
-                    enemies.splice(index, 1);
-                } else {
-                    enemy.style.top = rect.top + 4 + 'px';
-
-                    if (isColliding(enemy, player)) {
-                        audio.enemy.play();
-                        endGame();
+                
+                if (item.y > GAME_HEIGHT) {
+                    if (item.isFinal) {
+                        item.y = -ITEM_SIZE; // Reset baby position
+                        item.attempts = (item.attempts || 0) + 1;
+                        showGameMessage(`Versuch ${item.attempts}/3!`);
+                        return item.attempts < 3;
                     }
+                    gameArea.removeChild(item.element);
+                    return false;
                 }
+                
+                return true;
             });
-
-            if (gameOverScreen.style.display !== 'flex') {
+            
+            if (!gameOver) {
                 requestAnimationFrame(updateGame);
             }
         }
 
-        function startSpawning() {
-            spawnFriend();
-            spawnEnemy();
 
-            if (gameOverScreen.style.display !== 'flex') {
-                setTimeout(startSpawning, 1000);
-            }
+function startSpawning() {
+            const spawnInterval = setInterval(() => {
+                if (gameOver) {
+                    clearInterval(spawnInterval);
+                    return;
+                }
+                
+                const timeElapsed = Date.now() - gameStartTime;
+                if (timeElapsed >= BABY_APPEAR_TIME && !finalItemActive) {
+                    createFinalItem();
+                } else if (timeElapsed < BABY_APPEAR_TIME) {
+                    createItem();
+                }
+            }, SPAWN_INTERVAL);
         }
 
-        function endGame() {
+        function endGame(won) {
+            gameOver = true;
             audio.background.pause();
-            audio.gameOver.play();
-            gameOverScreen.style.display = 'flex';
+            audio.background.currentTime = 0;
+            playSound(won ? 'win' : 'gameOver');
+            gameOverDisplay.style.display = 'block';
+            
+            if (won) {
+                gameOverDisplay.querySelector('h2').textContent = 'Du hast das Baby gefangen!';
+            } else {
+                gameOverDisplay.querySelector('h2').textContent = 'Spiel vorbei!';
+            }
+            finalScoreDisplay.textContent = `Endpunktzahl: ${score}`;
         }
 
         function restartGame() {
-            gameOverScreen.style.display = 'none';
             score = 0;
-            scoreElement.innerText = 'Score: 0';
-            friends.forEach(friend => friend.remove());
-            enemies.forEach(enemy => enemy.remove());
-            friends = [];
-            enemies = [];
-            player.style.left = 'calc(50% - 25px)';
-            audio.background.currentTime = 0;
+            gameOver = false;
+            finalItemActive = false;
+            gameStartTime = Date.now();
+            scoreDisplay.textContent = 'Punkte: 0';
+            gameOverDisplay.style.display = 'none';
+            
+            items.forEach(item => {
+                if (item.element.parentNode) {
+                    gameArea.removeChild(item.element);
+                }
+            });
+            items = [];
+            
             audio.background.play();
+            
+            lastTime = 0;
             requestAnimationFrame(updateGame);
             startSpawning();
         }
 
-        // Define the startGame function after variables and functions
         function startGame() {
-            // Hide intro screen and show game
             document.getElementById('introScreen').style.display = 'none';
             document.getElementById('gameContainer').style.display = 'block';
             
-            // Start background music
             audio.background.play();
             
-            // Initialize game
             gameStartTime = Date.now();
             requestAnimationFrame(updateGame);
             startSpawning();
         }
 
-        // Add click handler for start button
         document.getElementById('startButton').addEventListener('click', startGame);
-
-        // Remove the automatic start on window load
-        // window.addEventListener('load', () => { ... });
     </script>
 </body>
 </html>
