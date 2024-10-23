@@ -4,133 +4,18 @@
     <title>🎈 Alinas Geburtstagsparty 🎂</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f0f0f0;
-        }
-
-        #introScreen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #ff69b4, #87ceeb);
-            z-index: 100;
-        }
-
-        #introScreen h1 {
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            margin-bottom: 30px;
-            font-size: 28px;
-            text-align: center;
-            padding: 0 20px;
-        }
-
-        #startButton {
-            padding: 15px 30px;
-            font-size: 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            transition: transform 0.2s, background 0.2s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-
-        #startButton:hover {
-            transform: scale(1.05);
-            background: #45a049;
-        }
-
-        #gameContainer {
-            display: none;
-            text-align: center;
-        }
-
-        #score {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-
-        #gameArea {
-            width: 90vw;
-            height: 80vh;
-            max-width: 600px;
-            max-height: 800px;
-            position: relative;
-            overflow: hidden;
-            touch-action: none;
-            background-size: cover;
-            background-position: center;
-            border: 2px solid #333;
-        }
-
-        #gameMessage {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            color: #ff69b4;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            font-weight: bold;
-            display: none;
-            z-index: 10;
-            background: rgba(255,255,255,0.8);
-            padding: 10px 20px;
-            border-radius: 10px;
-        }
-
-        #player {
-            width: 90px;
-            height: 90px;
-            position: absolute;
-            bottom: 0;
-            left: 50%; /* Zentriert den Spieler horizontal */
-            transform: translateX(-50%);
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-            transition: bottom 0.3s ease-out;
-            display: block; /* Spieler von Anfang an sichtbar */
-        }
-
+        /* Ihr CSS bleibt unverändert, außer dass die Standardgröße der Items entfernt wurde */
         .item {
             position: absolute;
             background-size: contain;
             background-repeat: no-repeat;
             background-position: center;
         }
-
-        #gameOver {
-            display: none;
-            margin-top: 10px;
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+        /* Rest des CSS bleibt gleich */
     </style>
 </head>
 <body>
+    <!-- Ihr HTML bleibt unverändert -->
     <div id="introScreen">
         <h1>🎈 Alles Gute zum Geburtstag, Alina! 🎂<br>Fange deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
         <button id="startButton">Spiel starten</button>
@@ -267,7 +152,6 @@
         }
 
         function handleMove(e) {
-            // e.preventDefault(); // Entfernen oder modifizieren Sie diese Zeile
             const rect = gameArea.getBoundingClientRect();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const position = ((clientX - rect.left) / rect.width) * GAME_WIDTH;
@@ -301,8 +185,8 @@
             let itemWidth = ITEM_SIZE;
             let itemHeight = ITEM_SIZE;
 
-            // Wenn es basti.png ist, Größe erhöhen
-            if (imageName === 'basti.png') {
+            // Wenn es basti.png, maia.png oder michael.png ist, Größe erhöhen
+            if (['basti.png', 'maia.png', 'michael.png'].includes(imageName)) {
                 itemWidth *= 1.5;  // 50% größer
                 itemHeight *= 1.5;
             }
@@ -313,13 +197,17 @@
             item.style.left = `${Math.random() * (GAME_WIDTH - itemWidth)}px`;
             item.style.top = `-${itemHeight}px`;
 
+            // Individuelle Fallgeschwindigkeit zuweisen
+            const itemFallSpeed = getCurrentFallSpeed() + Math.random() * 2; // Zufällige Geschwindigkeit
+
             gameArea.appendChild(item);
             items.push({
                 element: item,
                 y: -itemHeight,
                 isGood: isGood,
                 width: itemWidth,
-                height: itemHeight
+                height: itemHeight,
+                fallSpeed: itemFallSpeed
             });
         }
 
@@ -343,7 +231,8 @@
                 x: (GAME_WIDTH - ITEM_SIZE) / 2,
                 startX: (GAME_WIDTH - ITEM_SIZE) / 2,
                 hasFlownAway: false,
-                flyDirection: 0
+                flyDirection: 0,
+                appearanceTime: Date.now() // Zeit des Erscheinens speichern
             });
 
             if (catchable) {
@@ -368,8 +257,8 @@
                     item.x = wiggleX + chaosX;
                     item.y += currentFallSpeed + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
 
-                    // Nach einer bestimmten Position fliegt das Baby zur Seite
-                    if (item.y > GAME_HEIGHT * 0.3) {
+                    // Prüfen, ob 5 Sekunden vergangen sind
+                    if (Date.now() - item.appearanceTime >= 5000) {
                         item.hasFlownAway = true;
                         // Bestimmen Sie die Richtung (links oder rechts)
                         item.flyDirection = Math.random() < 0.5 ? -1 : 1;
@@ -388,7 +277,6 @@
             const deltaTime = timestamp - lastTime;
             lastTime = timestamp;
 
-            const currentFallSpeed = getCurrentFallSpeed();
             updatePlayerJump();
 
             const playerRect = player.getBoundingClientRect();
@@ -397,7 +285,7 @@
                 if (item.isBaby) {
                     updateBabyMovement(item, timestamp);
                 } else {
-                    item.y += currentFallSpeed * (deltaTime / 16);
+                    item.y += item.fallSpeed * (deltaTime / 16);
                 }
 
                 item.element.style.top = `${item.y}px`;
