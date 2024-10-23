@@ -132,7 +132,7 @@
 </head>
 <body>
     <div id="introScreen">
-        <h1>🎈 Alles Gute zum Geburtstag, Alina! 🎂<br>Fange deine Freunde und vermeide den Rest!<br>Nach oben wischen zum Springen!</h1>
+        <h1>🎈 Alles Gute zum Geburtstag, Alina! 🎂</h1>
         <button id="startButton">Spiel starten</button>
     </div>
 
@@ -360,8 +360,13 @@
         function updateBabyMovement(item, timestamp) {
             const currentFallSpeed = getCurrentFallSpeed();
             if (item.catchable) {
-                // Fangbares Baby bewegt sich normal nach unten
-                item.y += currentFallSpeed;
+                    // Fangbares Baby bewegt sich normal nach unten
+                    const wiggleX = item.startX + Math.sin(timestamp * 0.005) * 50;
+                    const chaosX = Math.sin(timestamp * 0.01) * 30;
+                    const chaosY = Math.cos(timestamp * 0.008) * 20;
+
+                    item.x = wiggleX + chaosX;
+                    item.y += currentFallSpeed + Math.sin(timestamp * 0.01) * 2 + chaosY * 0.2;
             } else {
                 if (!item.hasFlownAway) {
                     // Wackelbewegung
